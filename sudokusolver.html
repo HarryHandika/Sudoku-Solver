@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sudoku Solver</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Verdana, sans-serif;
+            background-color: #f4f7f6;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        p {
+            color: #666;
+            margin-bottom: 20px;
+        }
+
+        .sudoku-board {
+            display: grid;
+            grid-template-columns: repeat(9, 45px);
+            grid-template-rows: repeat(9, 45px);
+            gap: 0;
+            border: 3px solid #2c3e50;
+            background-color: #2c3e50;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+
+        .cell {
+            width: 45px;
+            height: 45px;
+            padding: 0;
+            margin: 0;
+            box-sizing: border-box;
+            text-align: center;
+            font-size: 20px;
+            font-weight: bold;
+            border: 1px solid #bdc3c7;
+            background-color: #fff;
+            outline: none;
+            color: #2c3e50;
+            appearance: textfield;
+            -moz-appearance: textfield;
+        }
+
+        .cell:focus {
+            background-color: #e8f4fd;
+        }
+
+        /* Hilangkan tombol panah increment/decrement pada input number */
+        .cell::-webkit-outer-spin-button,
+        .cell::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        .buttons {
+            margin-top: 20px;
+            display: flex;
+            gap: 15px;
+        }
+
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            border: none;
+            border-radius: 5px;
+            transition: background 0.2s;
+            color: white;
+        }
+
+        button.solve {
+            background-color: #27ae60;
+        }
+
+        button.solve:hover {
+            background-color: #219653;
+        }
+
+        button.clear {
+            background-color: #e74c3c;
+        }
+
+        button.clear:hover {
+            background-color: #c0392b;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Sudoku Solver</h1>
+    <p>Masukkan angka pada kotak lalu klik Selesaikan.</p>
+
+    <div class="sudoku-board" id="board"></div>
+
+    <div class="buttons">
+        <button class="solve" onclick="solveSudoku()">Selesaikan</button>
+        <button class="clear" onclick="clearBoard()">Hapus</button>
+    </div>
+
+    <script>
+        const boardContainer = document.getElementById('board');
+        const cells = [];
+
+        // Generate grid 9x9 input secara dinamis
+        for (let r = 0; r < 9; r++) {
+            for (let c = 0; c < 9; c++) {
+                const input = document.createElement('input');
+                input.type = 'number';
+                input.min = '1';
+                input.max = '9';
+                input.className = 'cell';
+                
+                // Beri garis tebal untuk memisahkan kotak 3x3 secara visual
+                if (c === 2 || c === 5) input.style.borderRight = '3px solid #2c3e50';
+                if (r === 2 || r === 5) input.style.borderBottom = '3px solid #2c3e50';
+
+                cells.push(input);
+                boardContainer.appendChild(input);
+            }
+        }
+
+        // Ambil nilai dari elemen input ke dalam bentuk array 2D
+        function getBoard() {
+            let board = [];
+            for (let r = 0; r < 9; r++) {
+                let row = [];
+                for (let c = 0; c < 9; c++) {
+                    const val = cells[r * 9 + c].value;
+                    row.push(val === "" ? 0 : parseInt(val));
+                }
+                board.push(row);
+            }
+            return board;
+        }
+
+        // Masukkan kembali array 2D hasil penyelesaian ke elemen input
+        function setBoard(board) {
+            for (let r = 0; r < 9; r++) {
+                for (let c = 0; c < 9; c++) {
+                    cells[r * 9 + c].value = board[r][c] === 0 ? "" : board[r][c];
+                }
+            }
+        }
+
+        // Tombol hapus seluruh board
+        function clearBoard() {
+            cells.forEach(cell => cell.value = "");
+        }
+
+        // Validasi apakah penempatan angka valid di posisi tertentu
+        function isValid(board, row, col, num) {
+            for (let i = 0; i < 9; i++) {
+                if (board[row][i] === num && i !== col) return false;
+                if (board[i][col] === num && i !== row) return false;
+            }
+            
+            let startRow = Math.floor(row / 3) * 3;
+            let startCol = Math.floor(col / 3) * 3;
+            for (let r = 0; r < 3; r++) {
+                for (let c = 0; c < 3; c++) {
+                    let currR = startRow + r;
+                    let currC = startCol + c;
+                    if (board[currR][currC] === num && (currR !== row || currC !== col)) return false;
+                }
+            }
+            return true;
+        }
+
+        // Algoritma Backtracking Rekursif
+        function solve(board) {
+            for (let r = 0; r < 9; r++) {
+                for (let c = 0; c < 9; c++) {
+                    if (board[r][c] === 0) {
+                        for (let num = 1; num <= 9; num++) {
+                            if (isValid(board, r, c, num)) {
+                                board[r][c] = num;
+                                if (solve(board)) return true;
+                                board[r][c] = 0; // Backtrack
+                            }
+                        }
+                        return false;
+                    }
+                }
+            }
+            return true;
+        }
+
+        // Fungsi utama saat tombol Selesaikan diklik
+        function solveSudoku() {
+            let board = getBoard();
+            if (solve(board)) {
+                setBoard(board);
+            } else {
+                alert("Sudoku tidak memiliki solusi atau kombinasi angka tidak valid!");
+            }
+        }
+    </script>
+</body>
+</html>
